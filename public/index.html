@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIPS Web IDE & Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-1: #8b5cf6;
+            --accent-1-hover: #7c3aed;
+            --accent-2: #3b82f6;
+            --accent-2-hover: #2563eb;
+            --accent-3: #10b981;
+            --accent-3-hover: #059669;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --console-bg: #000000;
+            --console-text: #22c55e;
+            --console-shared-text: #fcd34d;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.15), transparent 25%);
+            color: var(--text-main);
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(to right, #a78bfa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-source { background: var(--accent-1); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.3); }
+        .btn-source:hover { background: var(--accent-1-hover); transform: translateY(-1px); }
+
+        .btn-code { background: var(--accent-2); box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); }
+        .btn-code:hover { background: var(--accent-2-hover); transform: translateY(-1px); }
+
+        .btn-game { background: var(--accent-3); box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); }
+        .btn-game:hover { background: var(--accent-3-hover); transform: translateY(-1px); }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            flex: 1;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .panel-header {
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-area {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-area.active {
+            display: flex;
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        #source-code { color: #94a3b8; }
+
+        .gui-board {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 5px;
+            background: var(--border-color);
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .sudoku-cell {
+            width: 80px;
+            height: 80px;
+            background: #1e293b;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .sudoku-cell:focus {
+            background: #334155;
+            box-shadow: inset 0 0 0 2px var(--accent-3);
+        }
+
+        .sudoku-cell.fixed {
+            background: #0f172a;
+            color: #94a3b8;
+        }
+
+        .console-container {
+            flex: 1;
+            background: var(--console-bg);
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #personal-output { color: var(--console-text); }
+        #shared-output { color: var(--console-shared-text); }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            flex: 1;
+        }
+
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .input-line span {
+            margin-right: 8px;
+            color: #eab308;
+        }
+
+        input.terminal-input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            flex: 1;
+            outline: none;
+        }
+
+        /* Access Gate Styles */
+        #access-gate {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .gate-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .gate-input {
+            width: 100%; padding: 12px; margin: 20px 0;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
+            color: white; border-radius: 6px; font-size: 16px;
+        }
+
+        .tab-switcher {
+            display: flex;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text-main); }
+        .tab.active {
+            color: var(--accent-2);
+            border-bottom: 2px solid var(--accent-2);
+            background: rgba(255,255,255,0.05);
+        }
+        .tab-shared.active {
+            color: var(--accent-3);
+            border-bottom: 2px solid var(--accent-3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Access Gate -->
+    <div id="access-gate">
+        <div class="gate-box">
+            <h2>Welcome to MIPS Web IDE</h2>
+            <p id="gate-msg" style="color: var(--text-muted)">Please enter your name to request access from the Host.</p>
+            <input type="text" id="join-name" class="gate-input" placeholder="Your Name...">
+            <button class="btn-code" id="join-btn" onclick="requestAccess()" style="width: 100%">Request Access</button>
+        </div>
+    </div>
+
+    <header id="main-header" style="opacity: 0; pointer-events: none; transition: opacity 0.5s;">
+        <h1>MIPS Distributed Web IDE</h1>
+        <div class="actions">
+            <button class="btn-code" onclick="runCustomCode()">▶ Run Custom Code</button>
+            <button class="btn-game" onclick="startSudokuGame()">🎲 Restart Global Sudoku</button>
+        </div>
+    </header>
+
+    <div class="container" id="main-container" style="opacity: 0; pointer-events: none; transition: opacity 0.5s;">
+        <!-- LEFT PANEL: INPUT VIEWS -->
+        <div class="panel">
+            <div class="tab-switcher">
+                <div class="tab" id="tab-view-source" onclick="switchLeftView('view-source')">📄 Source Viewer</div>
+                <div class="tab active" id="tab-view-editor" onclick="switchLeftView('view-editor')">💻 Code Editor</div>
+                <div class="tab tab-shared" id="tab-view-gui" onclick="switchLeftView('view-gui')">🎲 Web GUI Board</div>
+            </div>
+            
+            <!-- View 1: Source Code -->
+            <div id="view-source" class="content-area">
+                <textarea id="source-code" readonly>Loading source code...</textarea>
+            </div>
+
+            <!-- View 2: Custom Code Editor -->
+            <div id="view-editor" class="content-area">
+                <textarea id="custom-code" spellcheck="false">
+# Write your custom MIPS Assembly here!
+# Click "Run Custom Code" to test it in your Private Terminal.
+</textarea>
+            </div>
+
+            <!-- View 3: Visual Web GUI -->
+            <div id="view-gui" class="content-area">
+                <div class="gui-board">
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Live Shared Sudoku Grid - Play directly here!</p>
+                    <div class="sudoku-grid" id="grid">
+                        <input type="text" class="sudoku-cell" data-r="0" data-c="0" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="0" data-c="1" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="0" data-c="2" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="1" data-c="0" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="1" data-c="1" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="1" data-c="2" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="2" data-c="0" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="2" data-c="1" maxlength="1" disabled>
+                        <input type="text" class="sudoku-cell" data-r="2" data-c="2" maxlength="1" disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: TERMINAL VIEWS -->
+        <div class="panel">
+            <div class="tab-switcher">
+                <div class="tab active" id="tab-terminal-personal" onclick="switchRightView('terminal-personal')">💻 Private Terminal</div>
+                <div class="tab tab-shared" id="tab-terminal-shared" onclick="switchRightView('terminal-shared')">🎲 Global Shared Terminal</div>
+            </div>
+            
+            <!-- Terminal 1: Personal Workspace -->
+            <div id="terminal-personal" class="content-area active">
+                <div class="console-container">
+                    <pre id="personal-output">Private Session: Output will appear here...</pre>
+                    <div class="input-line">
+                        <span>></span>
+                        <input type="text" class="terminal-input" id="personal-input" placeholder="Type here..." disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal 2: Shared Multiplayer Server -->
+            <div id="terminal-shared" class="content-area">
+                <div class="console-container">
+                    <pre id="shared-output">Global Session: Waiting for host to start Sudoku...</pre>
+                    <div class="input-line">
+                        <span>></span>
+                        <input type="text" class="terminal-input" id="shared-input" placeholder="Interact with global server..." disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let isPlayer = false;
+
+        function requestAccess(autoName = null) {
+            const name = autoName || document.getElementById('join-name').value;
+            if (!name) return;
+            
+            // Save to browser cache
+            localStorage.setItem('mips_user_name', name);
+
+            document.getElementById('gate-msg').innerText = "Waiting for Host Admin to approve your connection...";
+            document.getElementById('gate-msg').style.color = "var(--accent-2)";
+            document.getElementById('join-btn').style.display = "none";
+            document.getElementById('join-name').style.display = "none";
+            
+            socket.emit('request_access', name);
+        }
+
+        window.onload = () => {
+            const cachedName = localStorage.getItem('mips_user_name');
+            if (cachedName) {
+                document.getElementById('join-name').value = cachedName;
+                requestAccess(cachedName);
+            }
+        };
+
+        socket.on('access_granted', (data) => {
+            isPlayer = data.canPlay;
+            document.getElementById('access-gate').style.opacity = '0';
+            document.getElementById('access-gate').style.pointerEvents = 'none';
+            document.getElementById('main-header').style.opacity = '1';
+            document.getElementById('main-header').style.pointerEvents = 'auto';
+            document.getElementById('main-container').style.opacity = '1';
+            document.getElementById('main-container').style.pointerEvents = 'auto';
+
+            if (!isPlayer) {
+                document.getElementById('shared-input').placeholder = "(Spectator Mode: Inputs disabled)";
+                document.getElementById('shared-input').disabled = true;
+                document.querySelectorAll('.sudoku-cell').forEach(c => c.disabled = true);
+                document.querySelector('.btn-game').style.display = 'none'; // Only host/players can restart the server
+            } else {
+                document.getElementById('shared-input').placeholder = "Interact with global server...";
+                document.getElementById('shared-input').disabled = false;
+                document.querySelectorAll('.sudoku-cell').forEach(c => c.disabled = false);
+            }
+        });
+
+        socket.on('kicked', () => {
+            alert("Your access was revoked by the Host.");
+            location.reload();
+        });
+
+        
+        // Load Source Code
+        fetch('/sudoku.asm')
+            .then(r => r.text())
+            .then(text => document.getElementById('source-code').value = text);
+
+        // UI State Switching
+        function switchLeftView(id) {
+            document.querySelectorAll('.panel:first-child .content-area').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.panel:first-child .tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('tab-' + id).classList.add('active');
+        }
+
+        function switchRightView(id) {
+            document.querySelectorAll('.panel:last-child .content-area').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.panel:last-child .tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('tab-' + id).classList.add('active');
+        }
+
+        function runCustomCode() {
+            switchLeftView('view-editor');
+            switchRightView('terminal-personal');
+            document.getElementById('personal-input').disabled = false;
+            socket.emit('run_personal_code', document.getElementById('custom-code').value);
+        }
+
+        function startSudokuGame() {
+            switchLeftView('view-gui');
+            switchRightView('terminal-shared');
+            document.getElementById('shared-input').disabled = false;
+            socket.emit('start_sudoku');
+        }
+
+        // --- Personal Terminal Logic ---
+        socket.on('personal_clear', () => { document.getElementById('personal-output').textContent = ''; });
+        socket.on('personal_output', (data) => {
+            const out = document.getElementById('personal-output');
+            out.textContent += data;
+            out.parentElement.scrollTop = out.parentElement.scrollHeight;
+        });
+        document.getElementById('personal-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                socket.emit('personal_input', e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        // --- Shared/Global Sudoku Logic ---
+        socket.on('shared_clear', () => { document.getElementById('shared-output').textContent = ''; });
+        
+        let outputBuffer = "";
+        socket.on('shared_output', (data) => {
+            // Auto-switch to shared terminal when output is received so spectators can see!
+            if (!document.getElementById('terminal-shared').classList.contains('active') && !document.getElementById('terminal-personal').classList.contains('active')) {
+                switchRightView('terminal-shared', 'Global Multiplayer Terminal (Yellow)');
+                document.getElementById('shared-input').disabled = false;
+            }
+
+            const out = document.getElementById('shared-output');
+            out.textContent += data;
+            out.parentElement.scrollTop = out.parentElement.scrollHeight;
+            
+            outputBuffer += data;
+            if (outputBuffer.includes('Enter row')) {
+                parseBoardFromOutput(outputBuffer);
+                outputBuffer = "";
+            }
+        });
+
+        document.getElementById('shared-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                socket.emit('shared_input', e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        function parseBoardFromOutput(text) {
+            const lines = text.split('\n');
+            let boardLines = [];
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].match(/^[123_]\s+[123_]\s+[123_]/)) {
+                    boardLines.push(lines[i].trim().split(/\s+/));
+                }
+            }
+            if (boardLines.length >= 3) {
+                const grid = boardLines.slice(-3);
+                const cells = document.querySelectorAll('.sudoku-cell');
+                let idx = 0;
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 3; c++) {
+                        const val = grid[r][c];
+                        const input = cells[idx++];
+                        if (val === '_') {
+                            input.value = '';
+                            input.classList.remove('fixed');
+                            input.readOnly = false;
+                        } else {
+                            input.value = val;
+                            input.classList.add('fixed');
+                            input.readOnly = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        document.querySelectorAll('.sudoku-cell').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const r = e.target.getAttribute('data-r');
+                const c = e.target.getAttribute('data-c');
+                const val = e.target.value;
+                if (val >= '1' && val <= '3') {
+                    // Send to backend simulating 3 sequential console inputs instantly
+                    socket.emit('shared_input', r);
+                    socket.emit('shared_input', c);
+                    socket.emit('shared_input', val);
+                    // Blur to remove focus after typing
+                    e.target.blur();
+                } else {
+                    e.target.value = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

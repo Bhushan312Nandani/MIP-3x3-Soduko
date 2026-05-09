@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MIPS Host Admin Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        h1 { color: #1e293b; margin-top: 0; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #475569; font-weight: 600; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
+        .badge.pending { background: #f59e0b; }
+        .badge.spectator { background: #3b82f6; }
+        .badge.player { background: #10b981; }
+        button { border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; color: white; margin-right: 5px; font-weight: bold; }
+        .btn-spectator { background: #3b82f6; }
+        .btn-player { background: #10b981; }
+        .btn-kick { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Dashboard (Local Access Only)</h1>
+        <p>Manage user access below. Users cannot access the IDE until you approve them.</p>
+        
+        <table id="users-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated via Socket.io -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const tbody = document.querySelector('tbody');
+
+        socket.on('update_users', (users) => {
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                let statusBadge = '';
+                if (u.status === 'pending') statusBadge = '<span class="badge pending">Waiting for Approval</span>';
+                else if (u.canPlay) statusBadge = '<span class="badge player">Approved Player</span>';
+                else statusBadge = '<span class="badge spectator">Approved Spectator</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${u.name}</strong></td>
+                    <td style="font-family: monospace;">${u.ip}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn-spectator" onclick="approve('${u.id}', false)">Approve as Spectator</button>
+                        <button class="btn-player" onclick="approve('${u.id}', true)">Approve as Player</button>
+                        <button class="btn-kick" onclick="kick('${u.id}')">Kick/Deny</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        function approve(id, canPlay) {
+            socket.emit('approve_user', { id, canPlay });
+        }
+
+        function kick(id) {
+            socket.emit('kick_user', id);
+        }
+    </script>
+</body>
+</html>

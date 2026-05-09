@@ -1,0 +1,15 @@
+{
+  "name": "mip-3x3-sudoku-host",
+  "version": "1.0.0",
+  "description": "Host setup and client script for MIP 3x3 Sudoku",
+  "main": "host-setup.js",
+  "scripts": {
+    "host": "node host-setup.js",
+    "play": "node play-sudoku.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "localtunnel": "^2.0.2",
+    "socket.io": "^4.8.3"
+  }
+}

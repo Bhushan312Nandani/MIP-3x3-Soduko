@@ -1,0 +1,19 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+
+# Runtime-generated files (contain live session data / IP addresses)
+visitors.txt
+approved_users.json
+game-url.txt
+
+# Temporary MIPS files created per user session
+temp_*.asm
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
